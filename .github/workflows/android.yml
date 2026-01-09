@@ -1,4 +1,4 @@
-name: Build NET X Final
+name: Build NET X APK
 on: [push]
 jobs:
   build:
@@ -12,31 +12,122 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Create Project Structure
+      - name: Create Project Files
         run: |
+          # إنشاء المجلدات
           mkdir -p app/src/main/java/com/turbo/net
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xhdpi
 
-          # 1. حل مشكلة AndroidX
+          # 1. حل مشكلة AndroidX (gradle.properties)
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-          # 2. إضافة الأيقونة (icon.png)
+          # 2. تركيب الأيقونة (لو الصورة موجودة بره)
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
           fi
 
-          # 3. المانيفست (مكتوب بطريقة تمنع أي خطأ في الحروف)
-          echo "PHBtYW5pZmVzdCB4bWxuczphbmRyb2lkPSJodHRwOi8vc2NoZW1hcy5hbmRyb2lkLmNvbS9hcGsvcmVzL2FuZHJvaWQiIHBhY2thZ2U9ImNvbS50dXJiby5uZXQiPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5JTlRFUk5FVCIgLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uRk9SRUdST1VORF9TRVJWSUNFIiAvPgogICAgPGFwcGxpY2F0aW9uIGFuZHJvaWQ6bGFiZWw9Ik5FVCBYIO🚀IiBhbmRyb2lkOmljb249IkBtaXBtYXAvaWNfbGF1bmNoZXIiIGFuZHJvaWQ6dGhlbWU9IkBzdHlsZS9UaGVtZS5BcHBDb21wYXQuTm9BYmFyIj4KICAgICAgICA8YWN0aXZpdHkgYW5kcm9pZDpuYW1lPSJjb20udHVyYm8ubmV0Lk1haW5BY3Rpdml0eSIgYW5kcm9pZDpleHBvcnRlZD0idHJ1ZSI+CiAgICAgICAgICAgIDxpbnRlbnQtZmlsdGVyPgogICAgICAgICAgICAgICAgPGFjdGlvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQuaW50ZW50LmFjdGlvbi5NQUlOIiAvPgogICAgICAgICAgICAgICAgPGNhdGVnb3J5IGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5pbnRlbnQuY2F0ZWdvcnkuTEFVTkNIRVIiIC8+CiAgICAgICAgICAgIDwvaW50ZW50LWZpbHRlcj4KICAgICAgICA8L2FjdGl2aXR5PgogICAgICAgIDxzZXJ2aWNlIGFuZHJvaWQ6bmFtZT0iY29tLnR1cmJvLm5ldC5OZXRCb29zdGVyU2VydmljZSIgYW5kcm9pZDpwZXJtaXNzaW9uPSJhbmRyb2lkLnBlcm1pc3Npb24uQklORF9WUE5fU0VSVklDRSIgYW5kcm9pZDpleHBvcnRlZD0iZmFsc2UiIC8+CiAgICA8L2FwcGxpY2F0aW9uPgo8L21hbmlmZXN0Pg==" | base64 -d > app/src/main/AndroidManifest.xml
+          # 3. المانيفست (الحل النهائي لمشكلة Missing name)
+          cat <<'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android" package="com.turbo.net">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <application 
+                  android:label="NET X 🚀" 
+                  android:icon="@mipmap/ic_launcher"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <service android:name=".NetBoosterService" 
+                      android:permission="android.permission.BIND_VPN_SERVICE" 
+                      android:exported="false" />
+              </application>
+          </manifest>
+          EOF
 
           # 4. كود التطبيق (MainActivity)
-          echo "cGFja2FnZSBjb20udHVyYm8ubmV0CmltcG9ydCBhbmRyb2lkLmNvbnRlbnQuKgppbXBvcnQgYW5kcm9pZC5ncmFwaGljcy5Db2xvcgppbXBvcnQgYW5kcm9pZC5uZXQuVnBuU2VydmljZQppbXBvcnQgYW5kcm9pZC5vcy4qCmltcG9ydCBhbmRyb2lkLnZpZXcuR3Jhdml0eQppbXBvcnQgYW5kcm9pZC53aWRnZXQuKgppbXBvcnQgYW5kcm9pZHguYXBwY29tcGF0LmFwcC5BcHBDb21wYXRBY3Rpdml0eQppbXBvcnQgamF2YS51dGlsLioKCmNsYXNzIE1haW5BY3Rpdml0eSA6IEFwcENvbXBhdEFjdGl2aXR5KCkgewogICAgcHJpdmF0ZSB2YXIgc2F2ZWRNQiA9IDAuMAogICAgb3ZlcnJpZGUgZnVuIG9uQ3JlYXRlKHNhdmVkSW5zdGFuY2VTdGF0ZTogQnVuZGxlPykgewogICAgICAgIHN1cGVyLm9uQ3JlYXRlKHNhdmVkSW5zdGFuY2VTdGF0ZSkKICAgICAgICB2YWwgcm9vdCA9IExpbmVhckxheW91dCh0aGlzKS5hcHBseSB7CiAgICAgICAgICAgIG9yaWVudGF0aW9uID0gTGluZWFyTGF5b3V0LlZFUlRJQ0FMCiAgICAgICAgICAgIGJhY2tncm91bmRDb2xvciA9IENvbG9yLnBhcnNlQ29sb3IoIiMwRjBGMEYiKQogICAgICAgICAgICBncmF2aXR5ID0gR3Jhdml0eS5DRU5URVIKICAgICAgICAgICAgc2V0UGFkZGluZyg2MCwgNjAsIDYwLCA2MCkKICAgICAgICB9CiAgICAgICAgdmFsIHRpdGxlID0gVGV4dFZpZXcodGhpcykuYXBwbHkgeyB0ZXh0ID0gIk5FVCBYIjsgc2V0VGV4dENvbG9yKENvbG9yLkNZQU4pOyB0ZXh0U2l6ZSA9IDQwZjsgc2V0VHlwZWZhY2UobnVsbCwgYW5kcm9pZC5ncmFwaGljcy5UeXBlZmFjZS5CT0xEKSB9CiAgICAgICAgdmFsIHNhdmluZ3MgPSBUZXh0Vmlldyh0aGlzKS5hcHBseSB7IHRleHQgPSAiMC4wMCBNQiI7IHNldFRleHRDb2xvcihDb2xvci5HUkVFTik7IHRleHRTaXplID0gMjVmIH0KICAgICAgICB2YWwgYnRuID0gQnV0dG9uKHRoaXMpLmFwcGx5IHsgdGV4dCA9ICJTVEFSVCBUVVJCTyI7IHNldEJhY2tncm91bmRDb2xvcihDb2xvci5DWUFOKTsgc2V0VGV4dENvbG9yKENvbG9yLkJBQ0spIH0KICAgICAgICByb290LmFkZFZpZXcodGl0bGUpOyByb290LmFkZFZpZXcodmFpIHNhdmluZ3MpOyByb290LmFkZFZpZXcoYnRuKQogICAgICAgIHNldENvbnRlbnRWaWV3KHJvb3QpCiAgICAgICAgYnRuLnNldE9uQ2xpY2tMaXN0ZW5lciB7CiAgICAgICAgICAgIHZhbCB2cG5JbnRlbnQgPSBWcG5TZXJ2aWNlLnByZXBhcmUodGhpcykKICAgICAgICAgICAgaWYgKHZwblVudGVudCAhPSBudWxsKSBzdGFydEFjdGl2aXR5Rm9yUmVzdWx0KHZwblVudGVudCwgMCkgZWxzZSBzdGFydFR1cmJvKHNhdmluZ3MpCiAgICAgICAgfQogICAgfQogICAgcHJpdmF0ZSBmdW4gc3RhcnRUdXJibyh2OiBUZXh0VmlldykgewogICAgICAgIHN0YXJ0U2VydmljZShJbnRlbnQodGhpcywgTmV0Qm9vc3RlclNlcnZpY2U6OmNsYXNzLmphdmEpKQogICAgICAgIEhhbmRsZXIoTG9vcGVyLmdldE1haW5Mb29wZXIoKSkucG9zdChvYmplY3QgOiBSdW5uYWJsZSB7CiAgICAgICAgICAgIG92ZXJyaWRlIGZ1biBydW4oKSB7CiAgICAgICAgICAgICAgICBzYXZlZE1CICsrIDAuMTU7IHYudGV4dCA9ICIlLjJmIi5mb3JtYXQoc2F2ZWRNQikgKyAiIE1CIFNBVkVEIgogICAgICAgICAgICAgICAgSGFuZGxlcihMb29wZXIuZ2V0TWFpbiNMb29wZXIoKSkucG9zdERlbGF5ZWQodGhpcywgMTUwMCkKICAgICAgICAgICAgfQogICAgICAgIH0pCiAgICB9Cn0KCmNsYXNzIE5ldEJvb3N0ZXJTZXJ2aWNlIDogVnBuU2VydmljZSgpIHsKICAgIG92ZXJyaWRlIGZ1biBvblN0YXJ0Q29tbWFuZChpbnRlbnQ6IEludGVudD8sIGZsYWdzOiBJbnQsIHN0YXJ0SWQ6IEludCk6IEludCB7CiAgICAgICAgdHJ5IHsgQnVpbGRlcigpLmFkZEFkZHJlc3MoIjEwLjAuMC4yIiwgMzIpLmFkZFJvdXRlKCIwLjAuMC4wIiwgMCkuZXN0YWJsaXNoKCkgfSBjYXRjaChlOiBFeGNlcHRpb24pIHt9CiAgICAgICAgcmV0dXJuIFNUQVJUX1NUSUNLWQogICAgfQp9" | base64 -d > app/src/main/java/com/turbo/net/MainActivity.kt
+          cat <<'EOF' > app/src/main/java/com/turbo/net/MainActivity.kt
+          package com.turbo.net
+          import android.content.*
+          import android.graphics.Color
+          import android.net.VpnService
+          import android.os.*
+          import android.view.Gravity
+          import android.widget.*
+          import androidx.appcompat.app.AppCompatActivity
+          import java.util.*
 
-          # 5. إعدادات Gradle
+          class MainActivity : AppCompatActivity() {
+              private var savedMB = 0.0
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  val root = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      backgroundColor = Color.parseColor("#0F0F0F")
+                      gravity = Gravity.CENTER
+                      setPadding(60, 60, 60, 60)
+                  }
+                  val title = TextView(this).apply { text = "NET X"; setTextColor(Color.CYAN); textSize = 40f }
+                  val savings = TextView(this).apply { text = "0.00 MB"; setTextColor(Color.GREEN); textSize = 25f }
+                  val btn = Button(this).apply { text = "START TURBO"; setBackgroundColor(Color.CYAN); setTextColor(Color.BLACK) }
+                  root.addView(title); root.addView(savings); root.addView(btn)
+                  setContentView(root)
+                  btn.setOnClickListener {
+                      val vpnIntent = VpnService.prepare(this)
+                      if (vpnIntent != null) startActivityForResult(vpnIntent, 0) else startTurbo(savings)
+                  }
+              }
+              private fun startTurbo(v: TextView) {
+                  try { startService(Intent(this, NetBoosterService::class.java)) } catch(e: Exception) {}
+                  val h = Handler(Looper.getMainLooper())
+                  h.post(object : Runnable {
+                      override fun run() {
+                          savedMB += 0.15
+                          v.text = "%.2f".format(savedMB) + " MB SAVED"
+                          h.postDelayed(this, 1200)
+                      }
+                  })
+              }
+          }
+          class NetBoosterService : VpnService() {
+              override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+                  try { Builder().addAddress("10.0.0.2", 32).addRoute("0.0.0.0", 0).establish() } catch(e: Exception) {}
+                  return START_STICKY
+              }
+          }
+          EOF
+
+          # 5. ملفات Gradle
           echo "include ':app'" > settings.gradle
-          echo "YnVpbGRzY3JpcHQgewogICAgcmVwb3NpdG9yaWVzIHsgZ29vZ2xlKCk7IG1hdmVuQ2VudHJhbCgpIH0KICAgIGRlcGVuZGVuY2llcyB7IGNsYXNzcGF0ICdjb20uYW5kcm9pZC50boolsLmJ1aWxkOmdyYWRsZTo3LjQuMic7IGNsYXNzcGF0ICdvcmcuamV0YnJhaW5zLmtvdGxpbjprb3RsaW4tZ3JhZGxlLXBsdWdpbjoxLjguMTAnIH0KfQphbGxwcm9qZWN0cyB7IHJlcG9zaXRvcmllcyB7IGdvb2dsZSgpOyBtYXZlbkNlbnRyYWwoKSB9IH0=" | base64 -d > build.gradle
-          echo "cGx1Z2lucyB7IGlkICdjb20uYW5kcm9pZC5hcHBsaWNhdGlvbic7IGlkICdrb3RsaW4tYW5kcm9pZCcgfQphbmRyb2lkIHsKICAgIG5hbWVzcGFjZSAnY29tLnR1cmJvLm5ldCcKICAgIGNvbXBpbGVTZGsgMzMKICAgIGRlZmF1bHRDb25maWcgeyBhcHBsaWNhdGlvbklkICJjb20udHVyYm8ubmV0IjsgbWluU2RrIDIxOyB0YXJnZXRTZGsgMzM7IHZlcnNpb25Db2RlIDE7IHZlcnNpb25OYW1lICIxLjAiIH0KfQpkZXBlbmRlbmNpZXMgewogICAgaW1wbGVtZW50YXRpb24gJ2FuZHJvaWR4LmFwcGNvbXBhdDphcHBCb21wYXQ6MS42LjEnJwogICAgaW1wbGVtZW50YXRpb24gJ2FuZHJvaWR4LmNvcmU6Y29yZS1rdHg6MS45LjAnJwp9" | base64 -d > app/build.gradle
+          cat <<'EOF' > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { 
+                  classpath 'com.android.tools.build:gradle:7.4.2'
+                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10' 
+              }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+          
+          cat <<'EOF' > app/build.gradle
+          plugins { id 'com.android.application'; id 'kotlin-android' }
+          android {
+              namespace 'com.turbo.net'
+              compileSdk 33
+              defaultConfig { applicationId "com.turbo.net"; minSdk 21; targetSdk 33; versionCode 1; versionName "1.0" }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.core:core-ktx:1.9.0'
+          }
+          EOF
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
@@ -49,5 +140,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NET-X-Ready
+          name: NET-X-Package
           path: app/build/outputs/apk/debug/*.apk
