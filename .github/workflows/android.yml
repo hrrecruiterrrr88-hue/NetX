@@ -14,44 +14,43 @@ jobs:
 
       - name: Create Project Files
         run: |
-          # إنشاء المجلدات
           mkdir -p app/src/main/java/com/turbo/net
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xhdpi
 
-          # 1. حل مشكلة AndroidX (gradle.properties)
+          # 1. حل مشكلة AndroidX
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-          # 2. تركيب الأيقونة (لو الصورة موجودة بره)
+          # 2. تركيب الأيقونة icon.png
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
           fi
 
-          # 3. المانيفست (الحل النهائي لمشكلة Missing name)
+          # 3. المانيفست المصحح (Namespace صح وبدون Package)
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android" package="com.turbo.net">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <application 
                   android:label="NET X 🚀" 
                   android:icon="@mipmap/ic_launcher"
                   android:theme="@style/Theme.AppCompat.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
+                  <activity android:name="com.turbo.net.MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
-                  <service android:name=".NetBoosterService" 
+                  <service android:name="com.turbo.net.NetBoosterService" 
                       android:permission="android.permission.BIND_VPN_SERVICE" 
                       android:exported="false" />
               </application>
           </manifest>
           EOF
 
-          # 4. كود التطبيق (MainActivity)
+          # 4. كود التطبيق
           cat <<'EOF' > app/src/main/java/com/turbo/net/MainActivity.kt
           package com.turbo.net
           import android.content.*
@@ -61,38 +60,23 @@ jobs:
           import android.view.Gravity
           import android.widget.*
           import androidx.appcompat.app.AppCompatActivity
-          import java.util.*
 
           class MainActivity : AppCompatActivity() {
-              private var savedMB = 0.0
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
                   val root = LinearLayout(this).apply {
                       orientation = LinearLayout.VERTICAL
-                      backgroundColor = Color.parseColor("#0F0F0F")
+                      backgroundColor = Color.BLACK
                       gravity = Gravity.CENTER
-                      setPadding(60, 60, 60, 60)
                   }
-                  val title = TextView(this).apply { text = "NET X"; setTextColor(Color.CYAN); textSize = 40f }
-                  val savings = TextView(this).apply { text = "0.00 MB"; setTextColor(Color.GREEN); textSize = 25f }
-                  val btn = Button(this).apply { text = "START TURBO"; setBackgroundColor(Color.CYAN); setTextColor(Color.BLACK) }
-                  root.addView(title); root.addView(savings); root.addView(btn)
+                  val title = TextView(this).apply { text = "NET X 🚀"; setTextColor(Color.CYAN); textSize = 40f }
+                  val btn = Button(this).apply { text = "START TURBO" }
+                  root.addView(title); root.addView(btn)
                   setContentView(root)
                   btn.setOnClickListener {
                       val vpnIntent = VpnService.prepare(this)
-                      if (vpnIntent != null) startActivityForResult(vpnIntent, 0) else startTurbo(savings)
+                      if (vpnIntent != null) startActivityForResult(vpnIntent, 0) else startService(Intent(this, NetBoosterService::class.java))
                   }
-              }
-              private fun startTurbo(v: TextView) {
-                  try { startService(Intent(this, NetBoosterService::class.java)) } catch(e: Exception) {}
-                  val h = Handler(Looper.getMainLooper())
-                  h.post(object : Runnable {
-                      override fun run() {
-                          savedMB += 0.15
-                          v.text = "%.2f".format(savedMB) + " MB SAVED"
-                          h.postDelayed(this, 1200)
-                      }
-                  })
               }
           }
           class NetBoosterService : VpnService() {
@@ -103,15 +87,13 @@ jobs:
           }
           EOF
 
-          # 5. ملفات Gradle
+          # 5. إعدادات Gradle (ضبط الـ namespace هنا)
           echo "include ':app'" > settings.gradle
           cat <<'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { 
-                  classpath 'com.android.tools.build:gradle:7.4.2'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10' 
-              }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2'
+                             classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10' }
           }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
@@ -121,7 +103,13 @@ jobs:
           android {
               namespace 'com.turbo.net'
               compileSdk 33
-              defaultConfig { applicationId "com.turbo.net"; minSdk 21; targetSdk 33; versionCode 1; versionName "1.0" }
+              defaultConfig { 
+                  applicationId "com.turbo.net"
+                  minSdk 21 
+                  targetSdk 33 
+                  versionCode 1 
+                  versionName "1.0" 
+              }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
