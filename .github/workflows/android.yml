@@ -6,11 +6,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. تحديث الجافا لنسخة 17 (عشان تناسب Gradle الجديد)
-      - name: set up JDK 17
+      # 1. استخدام جافا 11 (الأكثر استقراراً مع Gradle 7)
+      - name: set up JDK 11
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '11'
           distribution: 'temurin'
 
       - name: Create Project Files
@@ -19,22 +19,20 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xhdpi
 
-          # حل مشكلة AndroidX
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-          # تركيب الأيقونة
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
           fi
 
-          # المانيفست المصحح
+          # المانيفست الرسمي
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.turbo.net">
               <uses-permission android:name="android.permission.INTERNET" />
               <application android:label="NET X" android:icon="@mipmap/ic_launcher" android:theme="@style/Theme.AppCompat.NoActionBar">
-                  <activity android:name="com.turbo.net.MainActivity" android:exported="true">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -68,11 +66,11 @@ jobs:
           }
           EOF
 
-          # ملفات Gradle
+          # ملفات Gradle (إصدارات متوافقة تماماً)
           cat <<'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.1.0' }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
           }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
@@ -80,21 +78,25 @@ jobs:
           cat <<'EOF' > app/build.gradle
           plugins { id 'com.android.application' }
           android {
-              namespace 'com.turbo.net'
-              compileSdk 34
-              defaultConfig { applicationId "com.turbo.net"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
+              compileSdk 33
+              defaultConfig { applicationId "com.turbo.net"; minSdk 21; targetSdk 33; versionCode 1; versionName "1.0" }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
 
           echo "include ':app'" > settings.gradle
 
-      # 2. استخدام أمر Gradle مباشر (بدون gradlew) لتجنب ايرور الملف المفقود
-      - name: Build with Gradle
+      # 2. إجبار السيرفر على استخدام نسخة Gradle 7.5 المستقرة
+      - name: Setup Gradle 7.5
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.5
+
+      - name: Build APK
         run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NET-X-Ready-App
+          name: NET-X-Package
           path: app/build/outputs/apk/debug/*.apk
