@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Turbo APK
 on: [push]
 jobs:
   build:
@@ -12,23 +12,29 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Initialize Android Project
+      - name: Create Full Project Structure
         run: |
+          # 1. إنشاء المجلدات المطلوبة
           mkdir -p app/src/main/java/com/turbo/net
-          mkdir -p app/src/main
-          # نقل الملفات لأماكنها الصحيحة اللي بيفهمها السيرفر
-          mv MainActivity.kt app/src/main/java/com/turbo/net/
-          mv AndroidManifest.xml app/src/main/
-          
-          # إنشاء ملفات الإعدادات تلقائياً
+          mkdir -p app/src/main/res/layout
+
+          # 2. بناء ملف الإعدادات
           echo "include ':app'" > settings.gradle
-          
-          # تعديل ملف build.gradle ليكون متوافق مع المسارات الجديدة
-          cat <<EOT > app/build.gradle
-          plugins {
-              id 'com.android.application'
-              id 'kotlin-android'
+
+          # 3. إنشاء ملف build.gradle الرئيسي
+          cat <<EOT > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2'
+                             classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10" }
           }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOT
+
+          # 4. إنشاء ملف build.gradle الخاص بالتطبيق
+          cat <<EOT > app/build.gradle
+          apply plugin: 'com.android.application'
+          apply plugin: 'kotlin-android'
           android {
               namespace 'com.turbo.net'
               compileSdk 33
@@ -40,20 +46,22 @@ jobs:
                   versionName "1.0"
               }
           }
-          repositories { google(); mavenCentral() }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'androidx.core:core-ktx:1.9.0'
+              implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.10'
           }
           EOT
 
-      - name: Build with Gradle
-        run: |
-          # استخدام جرايدل الداخلي لبناء التطبيق
-          gradle assembleDebug
+          # 5. نقل الكود للمسار الصحيح (بافتراض الملفات موجودة في الرئيسي)
+          cp MainActivity.kt app/src/main/java/com/turbo/net/MainActivity.kt
+          cp AndroidManifest.xml app/src/main/AndroidManifest.xml
+
+      - name: Build APK
+        run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v3
         with:
-          name: TurboNet-App
+          name: TurboNet-Final-APK
           path: app/build/outputs/apk/debug/*.apk
