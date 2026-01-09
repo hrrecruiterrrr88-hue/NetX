@@ -6,35 +6,37 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: set up JDK 11
+      - name: set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Full Project Structure
+      - name: Setup Android Project Structure
         run: |
-          # 1. إنشاء المجلدات المطلوبة
+          # 1. إنشاء هيكل المجلدات
           mkdir -p app/src/main/java/com/turbo/net
-          mkdir -p app/src/main/res/layout
-
-          # 2. بناء ملف الإعدادات
+          
+          # 2. نقل ملفاتك لأماكنها (تأكد أن الأسماء بره هي دي بالظبط)
+          cp MainActivity.kt app/src/main/java/com/turbo/net/
+          cp AndroidManifest.xml app/src/main/
+          
+          # 3. إنشاء ملفات الإعدادات الأساسية
           echo "include ':app'" > settings.gradle
-
-          # 3. إنشاء ملف build.gradle الرئيسي
+          
           cat <<EOT > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:7.4.2'
                              classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10" }
           }
-          allprojects { repositories { google(); mavenCentral() } }
           EOT
 
-          # 4. إنشاء ملف build.gradle الخاص بالتطبيق
           cat <<EOT > app/build.gradle
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
+          plugins {
+              id 'com.android.application'
+              id 'kotlin-android'
+          }
           android {
               namespace 'com.turbo.net'
               compileSdk 33
@@ -46,22 +48,22 @@ jobs:
                   versionName "1.0"
               }
           }
+          repositories { google(); mavenCentral() }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'androidx.core:core-ktx:1.9.0'
-              implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.10'
           }
           EOT
 
-          # 5. نقل الكود للمسار الصحيح (بافتراض الملفات موجودة في الرئيسي)
-          cp MainActivity.kt app/src/main/java/com/turbo/net/MainActivity.kt
-          cp AndroidManifest.xml app/src/main/AndroidManifest.xml
-
-      - name: Build APK
-        run: gradle assembleDebug
+      - name: Build with Gradle
+        run: |
+          # تحميل Gradle وبناء التطبيق
+          wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
+          unzip -q gradle-7.5-bin.zip
+          ./gradle-7.5/bin/gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v3
         with:
-          name: TurboNet-Final-APK
+          name: TurboNet-Final
           path: app/build/outputs/apk/debug/*.apk
