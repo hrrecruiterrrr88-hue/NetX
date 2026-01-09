@@ -4,21 +4,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Create Project From Scratch
         run: |
-          # 1. إنشاء هيكل المجلدات
           mkdir -p app/src/main/java/com/turbo/net
           mkdir -p app/src/main/res/values
-
-          # 2. إنشاء ملف المانيفست (Manifest)
+          echo "include ':app'" > settings.gradle
+          
+          # إنشاء المانيفست
           cat <<EOT > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android" package="com.turbo.net">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -35,7 +35,7 @@ jobs:
           </manifest>
           EOT
 
-          # 3. إنشاء كود الجافا/كوتلن (MainActivity)
+          # إنشاء الكود
           cat <<EOT > app/src/main/java/com/turbo/net/MainActivity.kt
           package com.turbo.net
           import android.content.*
@@ -60,10 +60,8 @@ jobs:
                   val title = TextView(this).apply { text = "TURBO NET 🚀"; setTextColor(Color.GREEN); textSize = 28f }
                   val savings = TextView(this).apply { text = "تم توفير: 0.0 MB"; setTextColor(Color.YELLOW); textSize = 18f }
                   val btn = Button(this).apply { text = "تفعيل وضع الطلقة 🔥"; setBackgroundColor(Color.GREEN) }
-                  
                   root.addView(title); root.addView(savings); root.addView(btn)
                   setContentView(root)
-
                   btn.setOnClickListener {
                       val vpnIntent = VpnService.prepare(this)
                       if (vpnIntent != null) startActivityForResult(vpnIntent, 0) else startTurbo(savings)
@@ -81,7 +79,6 @@ jobs:
                   })
               }
           }
-
           class NetBoosterService : VpnService() {
               override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
                   Builder().apply { addAddress("10.0.0.2", 32).addRoute("0.0.0.0", 0).setMtu(1100) }.establish()
@@ -90,8 +87,7 @@ jobs:
           }
           EOT
 
-          # 4. إنشاء ملفات الإعدادات (build.gradle)
-          echo "include ':app'" > settings.gradle
+          # إعدادات Gradle
           cat <<EOT > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -120,7 +116,7 @@ jobs:
           ./gradle-7.5/bin/gradle assembleDebug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: TurboNet-Final
+          name: TurboNet-App-Final
           path: app/build/outputs/apk/debug/*.apk
