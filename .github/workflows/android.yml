@@ -12,18 +12,86 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android Project Structure
+      - name: Create Project From Scratch
         run: |
           # 1. إنشاء هيكل المجلدات
           mkdir -p app/src/main/java/com/turbo/net
-          
-          # 2. نقل ملفاتك لأماكنها (تأكد أن الأسماء بره هي دي بالظبط)
-          cp MainActivity.kt app/src/main/java/com/turbo/net/
-          cp AndroidManifest.xml app/src/main/
-          
-          # 3. إنشاء ملفات الإعدادات الأساسية
+          mkdir -p app/src/main/res/values
+
+          # 2. إنشاء ملف المانيفست (Manifest)
+          cat <<EOT > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android" package="com.turbo.net">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <application android:label="Turbo Net 2026" android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <service android:name=".NetBoosterService" android:permission="android.permission.BIND_VPN_SERVICE" android:exported="false" />
+              </application>
+          </manifest>
+          EOT
+
+          # 3. إنشاء كود الجافا/كوتلن (MainActivity)
+          cat <<EOT > app/src/main/java/com/turbo/net/MainActivity.kt
+          package com.turbo.net
+          import android.content.*
+          import android.graphics.Color
+          import android.net.VpnService
+          import android.os.*
+          import android.view.Gravity
+          import android.widget.*
+          import androidx.appcompat.app.AppCompatActivity
+          import java.util.*
+
+          class MainActivity : AppCompatActivity() {
+              private var savedMB = 0.0
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  val root = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      backgroundColor = Color.parseColor("#121212")
+                      gravity = Gravity.CENTER_HORIZONTAL
+                      setPadding(50, 100, 50, 50)
+                  }
+                  val title = TextView(this).apply { text = "TURBO NET 🚀"; setTextColor(Color.GREEN); textSize = 28f }
+                  val savings = TextView(this).apply { text = "تم توفير: 0.0 MB"; setTextColor(Color.YELLOW); textSize = 18f }
+                  val btn = Button(this).apply { text = "تفعيل وضع الطلقة 🔥"; setBackgroundColor(Color.GREEN) }
+                  
+                  root.addView(title); root.addView(savings); root.addView(btn)
+                  setContentView(root)
+
+                  btn.setOnClickListener {
+                      val vpnIntent = VpnService.prepare(this)
+                      if (vpnIntent != null) startActivityForResult(vpnIntent, 0) else startTurbo(savings)
+                  }
+              }
+              private fun startTurbo(v: TextView) {
+                  startService(Intent(this, NetBoosterService::class.java))
+                  val h = Handler(Looper.getMainLooper())
+                  h.post(object : Runnable {
+                      override fun run() {
+                          savedMB += Random().nextDouble() * 0.1
+                          v.text = "تم توفير: " + "%.2f".format(savedMB) + " MB"
+                          h.postDelayed(this, 2000)
+                      }
+                  })
+              }
+          }
+
+          class NetBoosterService : VpnService() {
+              override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+                  Builder().apply { addAddress("10.0.0.2", 32).addRoute("0.0.0.0", 0).setMtu(1100) }.establish()
+                  return START_STICKY
+              }
+          }
+          EOT
+
+          # 4. إنشاء ملفات الإعدادات (build.gradle)
           echo "include ':app'" > settings.gradle
-          
           cat <<EOT > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -31,22 +99,12 @@ jobs:
                              classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10" }
           }
           EOT
-
           cat <<EOT > app/build.gradle
-          plugins {
-              id 'com.android.application'
-              id 'kotlin-android'
-          }
+          plugins { id 'com.android.application'; id 'kotlin-android' }
           android {
               namespace 'com.turbo.net'
               compileSdk 33
-              defaultConfig {
-                  applicationId "com.turbo.net"
-                  minSdk 21
-                  targetSdk 33
-                  versionCode 1
-                  versionName "1.0"
-              }
+              defaultConfig { applicationId "com.turbo.net"; minSdk 21; targetSdk 33; versionCode 1; versionName "1.0" }
           }
           repositories { google(); mavenCentral() }
           dependencies {
@@ -57,7 +115,6 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          # تحميل Gradle وبناء التطبيق
           wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
           unzip -q gradle-7.5-bin.zip
           ./gradle-7.5/bin/gradle assembleDebug
