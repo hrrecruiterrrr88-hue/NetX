@@ -12,14 +12,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Project From Scratch
+      - name: Create Project Files
         run: |
+          # إنشاء المجلدات
           mkdir -p app/src/main/java/com/turbo/net
           mkdir -p app/src/main/res/values
-          echo "include ':app'" > settings.gradle
-          
-          # إنشاء المانيفست
-          cat <<EOT > app/src/main/AndroidManifest.xml
+
+          # 1. المانيفست
+          cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android" package="com.turbo.net">
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -33,10 +33,10 @@ jobs:
                   <service android:name=".NetBoosterService" android:permission="android.permission.BIND_VPN_SERVICE" android:exported="false" />
               </application>
           </manifest>
-          EOT
+          EOF
 
-          # إنشاء الكود
-          cat <<EOT > app/src/main/java/com/turbo/net/MainActivity.kt
+          # 2. كود التطبيق
+          cat <<EOF > app/src/main/java/com/turbo/net/MainActivity.kt
           package com.turbo.net
           import android.content.*
           import android.graphics.Color
@@ -85,38 +85,40 @@ jobs:
                   return START_STICKY
               }
           }
-          EOT
+          EOF
 
-          # إعدادات Gradle
-          cat <<EOT > build.gradle
+          # 3. ملفات الإعدادات
+          echo "include ':app'" > settings.gradle
+          cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath 'com.android.tools.build:gradle:7.4.2'
                              classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10" }
           }
-          EOT
-          cat <<EOT > app/build.gradle
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+          
+          cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
           android {
               namespace 'com.turbo.net'
               compileSdk 33
               defaultConfig { applicationId "com.turbo.net"; minSdk 21; targetSdk 33; versionCode 1; versionName "1.0" }
           }
-          repositories { google(); mavenCentral() }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'androidx.core:core-ktx:1.9.0'
           }
-          EOT
+          EOF
 
-      - name: Build with Gradle
+      - name: Build APK
         run: |
-          wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
-          unzip -q gradle-7.5-bin.zip
-          ./gradle-7.5/bin/gradle assembleDebug
+          # بناء التطبيق باستخدام جرايدل المدمج في بيئة جيت هب
+          chmod +x ./gradlew || true
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TurboNet-App-Final
+          name: TurboNet-App
           path: app/build/outputs/apk/debug/*.apk
