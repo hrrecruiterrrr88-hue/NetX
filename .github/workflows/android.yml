@@ -1,4 +1,4 @@
-name: Build Turbo APK
+name: Build NET X APK
 on: [push]
 jobs:
   build:
@@ -14,15 +14,31 @@ jobs:
 
       - name: Create Project Structure
         run: |
+          # 1. المجلدات
           mkdir -p app/src/main/java/com/turbo/net
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-xhdpi
           
-          # 1. المانيفست
+          # 2. حل مشكلة الـ AndroidX (السر هنا)
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          
+          # 3. دمج الأيقونة "البوم بوم"
+          if [ -f "icon.png" ]; then
+            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          else
+            echo "Warning: icon.png not found, using default icon"
+          fi
+
+          # 4. المانيفست (الاسم والأيقونة)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android" package="com.turbo.net">
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <application android:label="Turbo Net 2026" android:theme="@style/Theme.AppCompat.NoActionBar">
+              <application 
+                  android:label="NET X 🚀" 
+                  android:icon="@mipmap/ic_launcher"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -34,7 +50,7 @@ jobs:
           </manifest>
           EOF
 
-          # 2. كود التطبيق
+          # 5. كود التطبيق (NET X Style)
           cat <<EOF > app/src/main/java/com/turbo/net/MainActivity.kt
           package com.turbo.net
           import android.content.*
@@ -52,16 +68,22 @@ jobs:
                   super.onCreate(savedInstanceState)
                   val root = LinearLayout(this).apply {
                       orientation = LinearLayout.VERTICAL
-                      backgroundColor = Color.parseColor("#121212")
-                      gravity = Gravity.CENTER_HORIZONTAL
-                      setPadding(50, 100, 50, 50)
+                      backgroundColor = Color.parseColor("#0F0F0F")
+                      gravity = Gravity.CENTER
+                      setPadding(60, 60, 60, 60)
                   }
-                  val title = TextView(this).apply { text = "TURBO NET 🚀"; setTextColor(Color.GREEN); textSize = 28f }
-                  val savings = TextView(this).apply { text = "تم توفير: 0.0 MB"; setTextColor(Color.YELLOW); textSize = 18f }
-                  val btn = Button(this).apply { text = "تفعيل وضع الطلقة 🔥"; setBackgroundColor(Color.GREEN) }
-                  root.addView(title); root.addView(savings); root.addView(btn)
+                  val title = TextView(this).apply { text = "NET X"; setTextColor(Color.parseColor("#00E5FF")); textSize = 40f; setTypeface(null, android.graphics.Typeface.BOLD) }
+                  val status = TextView(this).apply { text = "SYSTEM SECURE"; setTextColor(Color.GRAY); setPadding(0, 10, 0, 60) }
+                  val savings = TextView(this).apply { text = "0.00 MB"; setTextColor(Color.GREEN); textSize = 25f }
+                  val btn = Button(this).apply { 
+                      text = "START TURBO"
+                      setBackgroundColor(Color.parseColor("#00E5FF"))
+                      setTextColor(Color.BLACK)
+                  }
+                  root.addView(title); root.addView(status); root.addView(savings); root.addView(btn)
                   setContentView(root)
                   btn.setOnClickListener {
+                      status.text = "TURBO ACTIVE 🔥"
                       val vpnIntent = VpnService.prepare(this)
                       if (vpnIntent != null) startActivityForResult(vpnIntent, 0) else startTurbo(savings)
                   }
@@ -71,22 +93,22 @@ jobs:
                   val h = Handler(Looper.getMainLooper())
                   h.post(object : Runnable {
                       override fun run() {
-                          savedMB += Random().nextDouble() * 0.1
-                          v.text = "تم توفير: " + "%.2f".format(savedMB) + " MB"
-                          h.postDelayed(this, 2000)
+                          savedMB += Random().nextDouble() * 0.25
+                          v.text = "%.2f".format(savedMB) + " MB SAVED"
+                          h.postDelayed(this, 1000)
                       }
                   })
               }
           }
           class NetBoosterService : VpnService() {
               override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-                  try { Builder().apply { addAddress("10.0.0.2", 32).addRoute("0.0.0.0", 0).setMtu(1100) }.establish() } catch(e: Exception) {}
+                  try { Builder().apply { addAddress("10.0.0.2", 32).addRoute("0.0.0.0", 0).setMtu(1400) }.establish() } catch(e: Exception) {}
                   return START_STICKY
               }
           }
           EOF
 
-          # 3. إعدادات البناء (معدلة لتناسب السيرفر)
+          # 6. إعدادات البناء
           echo "include ':app'" > settings.gradle
           cat <<EOF > build.gradle
           buildscript {
@@ -96,7 +118,6 @@ jobs:
           }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
-          
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
           android {
@@ -121,5 +142,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TurboNet-App
+          name: NET-X-Turbo-V1
           path: app/build/outputs/apk/debug/*.apk
