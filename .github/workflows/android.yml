@@ -1,25 +1,59 @@
-name: Build Android APK
+name: Build APK
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: set up JDK 11
         uses: actions/setup-java@v3
         with:
           java-version: '11'
           distribution: 'temurin'
-      
+
+      - name: Initialize Android Project
+        run: |
+          mkdir -p app/src/main/java/com/turbo/net
+          mkdir -p app/src/main
+          # نقل الملفات لأماكنها الصحيحة اللي بيفهمها السيرفر
+          mv MainActivity.kt app/src/main/java/com/turbo/net/
+          mv AndroidManifest.xml app/src/main/
+          
+          # إنشاء ملفات الإعدادات تلقائياً
+          echo "include ':app'" > settings.gradle
+          
+          # تعديل ملف build.gradle ليكون متوافق مع المسارات الجديدة
+          cat <<EOT > app/build.gradle
+          plugins {
+              id 'com.android.application'
+              id 'kotlin-android'
+          }
+          android {
+              namespace 'com.turbo.net'
+              compileSdk 33
+              defaultConfig {
+                  applicationId "com.turbo.net"
+                  minSdk 21
+                  targetSdk 33
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          repositories { google(); mavenCentral() }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.core:core-ktx:1.9.0'
+          }
+          EOT
+
       - name: Build with Gradle
         run: |
-          # هذا الأمر يقوم بإنشاء ملفات البناء الأساسية
-          gradle init --type basic
+          # استخدام جرايدل الداخلي لبناء التطبيق
           gradle assembleDebug
-        continue-on-error: true
 
       - name: Upload APK
         uses: actions/upload-artifact@v3
         with:
-          name: MyTurboApp
-          path: "**/*.apk"
+          name: TurboNet-App
+          path: app/build/outputs/apk/debug/*.apk
