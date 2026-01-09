@@ -1,4 +1,4 @@
-name: Build NET X APK
+name: Build NET X Final
 on: [push]
 jobs:
   build:
@@ -12,22 +12,23 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Create Project Files
+      - name: Create Project Structure
         run: |
+          # 1. إنشاء المجلدات
           mkdir -p app/src/main/java/com/turbo/net
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xhdpi
 
-          # 1. حل مشكلة AndroidX
+          # 2. حل مشكلة AndroidX (gradle.properties)
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-          # 2. تركيب الأيقونة icon.png
+          # 3. دمج الأيقونة icon.png (لو موجودة)
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
           fi
 
-          # 3. المانيفست المصحح (Namespace صح وبدون Package)
+          # 4. المانيفست المصحح (Namespace صح وبدون Package)
           cat <<'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -50,7 +51,7 @@ jobs:
           </manifest>
           EOF
 
-          # 4. كود التطبيق
+          # 5. كود التطبيق الأساسي (MainActivity.kt)
           cat <<'EOF' > app/src/main/java/com/turbo/net/MainActivity.kt
           package com.turbo.net
           import android.content.*
@@ -70,7 +71,7 @@ jobs:
                       gravity = Gravity.CENTER
                   }
                   val title = TextView(this).apply { text = "NET X 🚀"; setTextColor(Color.CYAN); textSize = 40f }
-                  val btn = Button(this).apply { text = "START TURBO" }
+                  val btn = Button(this).apply { text = "CONNECT" }
                   root.addView(title); root.addView(btn)
                   setContentView(root)
                   btn.setOnClickListener {
@@ -87,17 +88,19 @@ jobs:
           }
           EOF
 
-          # 5. إعدادات Gradle (ضبط الـ namespace هنا)
-          echo "include ':app'" > settings.gradle
+          # 6. ملف build.gradle الخارجي
           cat <<'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:7.4.2'
-                             classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10' }
+              dependencies { 
+                  classpath 'com.android.tools.build:gradle:7.4.2'
+                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10' 
+              }
           }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
-          
+
+          # 7. ملف app/build.gradle (المسؤول عن الـ Namespace)
           cat <<'EOF' > app/build.gradle
           plugins { id 'com.android.application'; id 'kotlin-android' }
           android {
@@ -116,6 +119,8 @@ jobs:
               implementation 'androidx.core:core-ktx:1.9.0'
           }
           EOF
+          
+          echo "include ':app'" > settings.gradle
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
@@ -128,5 +133,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NET-X-Package
+          name: NET-X-Final-Version
           path: app/build/outputs/apk/debug/*.apk
